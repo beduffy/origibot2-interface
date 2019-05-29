@@ -13,12 +13,12 @@
             position: absolute;
         }
 
-        .arrow {
+        .control-button {
             font-size: 50px;
             cursor: pointer;
         }
 
-        .arrow:hover {
+        .control-button:hover {
             color: red;
         }
     </style>
@@ -31,6 +31,7 @@
     <i class="control-button arrow fas fa-arrow-right"></i>
     <i class="control-button arrow fas fa-arrow-down"></i>
     <i class="control-button arrow fas fa-arrow-left"></i>
+    <i class="control-button fa fa-stop-circle" aria-hidden="true"></i>
 </div>
 
 
@@ -39,10 +40,34 @@ $( document ).ready(function() {
     $(".control-button").click(function() {
       console.log($( this ), $(this).attr('class'));
       var classStr = $(this).attr('class');
-      if (classStr.includes('up')) {console.log('up')}
-      else if (classStr.includes('down')) {}
-      else if (classStr.includes('left')) {}
-      else if (classStr.includes('right')) {}
+      var commandToSend = false;
+      if (classStr.includes('up')) {commandToSend = 'F'}
+      else if (classStr.includes('down')) {commandToSend = 'B'}
+      else if (classStr.includes('left')) {commandToSend = 'L'}
+      else if (classStr.includes('right')) {commandToSend = 'R'}
+      else if (classStr.includes('stop')) {commandToSend = 'S'}
+
+
+
+      postData = {'commandToSend': commandToSend}
+      console.log('Command to send: ', commandToSend)
+      console.log(postData)
+      //$.post("send_command", postData).done(function(data) {
+      /*$.post("send_command", JSON.stringify(postData)).done(function(data) {
+          //$(".result").html( data );
+      });*/
+
+
+      $.ajax({
+          url:'/send_command',
+          type:"POST",
+          data: JSON.stringify(postData),
+          contentType:"application/json; charset=utf-8",
+          dataType:"json",
+          success: function(){
+
+          }
+        })
     });
 });
 </script>
