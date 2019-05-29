@@ -1,12 +1,17 @@
+import base64
 import json
 import time
 import sys
 
+import numpy as np
+import cv2
+import requests
 from bluetooth import *
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='')
 sock = None
+CAMERA_FRAME_IP_ANDROID = 'http://192.168.0.31:8080/shot.jpg'
 
 @app.route("/")
 def index_page():
@@ -19,6 +24,19 @@ def send_command():
     sock.send(data['commandToSend'])
     return jsonify({}), 200
 
+@app.route("/get_camera_frame")
+def get_camera_frame():
+    response = requests.get(CAMERA_FRAME_IP_ANDROID)
+    #img_arr = np.array(bytearray(response.content), dtype=np.uint8)
+    #img = cv2.imdecode(img_arr, -1)
+
+    # cv2.imshow('frame', img)
+    return base64.b64encode(response.content)
+
+@app.route('/assets/<path:path>')
+def send_assets(path):
+    return send_from_directory('assets', path)
+
 def setup_bluetooth_socket(addr):
     # search for the SampleServer service
     # uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
@@ -28,6 +46,7 @@ def setup_bluetooth_socket(addr):
     print('addr: {}'.format(addr))
     service_matches = find_service(address=addr)
 
+    print(service_matches)
     if len(service_matches) == 0:
         print("couldn't find the SampleServer service =(")
         sys.exit(0)
@@ -44,8 +63,10 @@ def setup_bluetooth_socket(addr):
     sock = BluetoothSocket(RFCOMM)
     sock.connect((host, port))
 
+
 if __name__ == '__main__':
     try:
+        # todo only setup bluetooth if clicked in browser
         addr = None
         if len(sys.argv) < 2:
             print("no device specified.  Searching all nearby bluetooth devices for")

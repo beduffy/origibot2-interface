@@ -10,7 +10,7 @@
     <style>
         #control-panel {
             top: 300px;
-            position: absolute;
+            /*position: absolute;*/
         }
 
         .control-button {
@@ -25,13 +25,40 @@
 </head>
 <body>
 
+<div id="camera-view">
+    <img id="RobotCameraView" src="" />
+</div>
 
 <div id="control-panel">
-    <i class="control-button arrow fas fa-arrow-up 7x"></i>
-    <i class="control-button arrow fas fa-arrow-right"></i>
-    <i class="control-button arrow fas fa-arrow-down"></i>
-    <i class="control-button arrow fas fa-arrow-left"></i>
-    <i class="control-button fa fa-stop-circle" aria-hidden="true"></i>
+    <button id="camera-feed">Camera Feed</button><br>
+    <i class="control-button fas fa-arrow-up 7x"></i>
+    <i class="control-button fas fa-arrow-right"></i>
+    <i class="control-button fas fa-arrow-down"></i>
+    <i class="control-button fas fa-arrow-left"></i>
+    <i class="control-button fa fa-stop-circle stop-wheel-motors" aria-hidden="true"></i><br>
+
+    <img src="assets/neck_control_button_d.png" class="control-button neck-up">
+    <img src="assets/neck_control_button_u.png" class="control-button neck-down">
+    <i class="control-button fa fa-stop-circle stop-neck" aria-hidden="true"></i><br>
+    <!--<img src="assets/neck_control_button_d.png">-->
+
+    <img src="assets/wrist_control_button_u.png" class="control-button wrist-up">
+    <img src="assets/wrist_control_button_d.png" class="control-button wrist-down">
+    <i class="control-button fa fa-stop-circle stop-wrist-tilt" aria-hidden="true"></i><br>
+    <img src="assets/wrist_control_button_l.png" class="control-button wrist-rotate-left">
+    <img src="assets/wrist_control_button_r.png" class="control-button wrist-rotate-right">
+    <i class="control-button fa fa-stop-circle stop-wrist-rotate" aria-hidden="true"></i><br>
+
+
+    <img src="assets/gripper_control_button_o.png" class="control-button gripper-close">
+    <img src="assets/gripper_control_button_c.png" class="control-button gripper-open">
+    <i class="control-button fa fa-stop-circle stop-gripper" aria-hidden="true"></i><br>
+
+    <img src="assets/arm_control_button_d.png" class="control-button arm-down">
+    <img src="assets/arm_control_button_u.png" class="control-button arm-up">
+    <i class="control-button fa fa-stop-circle stop-arm" aria-hidden="true"></i><br>
+
+
 </div>
 
 
@@ -41,13 +68,26 @@ $( document ).ready(function() {
       console.log($( this ), $(this).attr('class'));
       var classStr = $(this).attr('class');
       var commandToSend = false;
-      if (classStr.includes('up')) {commandToSend = 'F'}
-      else if (classStr.includes('down')) {commandToSend = 'B'}
-      else if (classStr.includes('left')) {commandToSend = 'L'}
-      else if (classStr.includes('right')) {commandToSend = 'R'}
-      else if (classStr.includes('stop')) {commandToSend = 'S'}
-
-
+      if (classStr.includes('arrow-up')) {commandToSend = 'F'}
+      else if (classStr.includes('arrow-down')) {commandToSend = 'B'}
+      else if (classStr.includes('arrow-left')) {commandToSend = 'L'}
+      else if (classStr.includes('arrow-right')) {commandToSend = 'R'}
+      else if (classStr.includes('stop-wheel-motors')) {commandToSend = 'S'}
+      else if (classStr.includes('stop-neck')) {commandToSend = 'X'}
+      else if (classStr.includes('stop-wrist-tilt')) {commandToSend = 'D'}
+      else if (classStr.includes('stop-wrist-rotate')) {commandToSend = 'P'}
+      else if (classStr.includes('stop-gripper')) {commandToSend = 'Y'}
+      else if (classStr.includes('stop-arm')) {commandToSend = 'I'}
+      else if (classStr.includes('neck-up')) {commandToSend = 'N'}
+      else if (classStr.includes('neck-down')) {commandToSend = 'V'}
+      else if (classStr.includes('wrist-up')) {commandToSend = 'U'}
+      else if (classStr.includes('wrist-down')) {commandToSend = 'H'}
+      else if (classStr.includes('wrist-rotate-left')) {commandToSend = 'W'}
+      else if (classStr.includes('wrist-rotate-right')) {commandToSend = 'O'}
+      else if (classStr.includes('gripper-close')) {commandToSend = 'T'}
+      else if (classStr.includes('gripper-open')) {commandToSend = 'G'}
+      else if (classStr.includes('arm-up')) {commandToSend = 'C'}
+      else if (classStr.includes('arm-down')) {commandToSend = 'Z'}
 
       postData = {'commandToSend': commandToSend}
       console.log('Command to send: ', commandToSend)
@@ -55,8 +95,7 @@ $( document ).ready(function() {
       //$.post("send_command", postData).done(function(data) {
       /*$.post("send_command", JSON.stringify(postData)).done(function(data) {
           //$(".result").html( data );
-      });*/
-
+      });*/  // doesn't work
 
       $.ajax({
           url:'/send_command',
@@ -69,6 +108,33 @@ $( document ).ready(function() {
           }
         })
     });
+
+    getCameraArray = function(data) {
+       byteArray = data;
+       $('#RobotCameraView').attr('src', 'data:image/png;base64, ' + byteArray);
+    }
+
+    var camFeedInterval = false;
+    var startInterval = function() {
+        camFeedInterval = setInterval(function() {
+            $.get("get_camera_frame", getCameraArray)
+        }, 100)
+    }
+    var stopInterval = function() {
+        clearInterval(camFeedInterval);
+    }
+
+    camFeedStopped = true;
+    $('#camera-feed').click(function() {
+        camFeedStopped = !camFeedStopped;
+        if (camFeedStopped) {
+            stopInterval()
+        }
+        else {
+            startInterval()
+        }
+    })
+
 });
 </script>
 </body>

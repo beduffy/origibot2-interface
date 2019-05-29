@@ -24,6 +24,7 @@ print('addr: {}'.format(addr))
 # import pdb;pdb.set_trace()
 # service_matches = find_service( name = uuid, address = addr )
 service_matches = find_service(address=addr)
+# service_matches = find_service()
 
 if len(service_matches) == 0:
     print("couldn't find the SampleServer service =(")
@@ -37,7 +38,7 @@ host = first_match["host"]
 print("connecting to \"%s\" on %s" % (name, host))
 
 # Create the client socket
-sock=BluetoothSocket( RFCOMM )
+sock = BluetoothSocket( RFCOMM )
 sock.connect((host, port))
 
 print("connected.  type stuff")
