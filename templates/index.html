@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Origibot2</title>
+
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+
+    <style>
+        #control-panel {
+            top: 300px;
+            position: absolute;
+        }
+
+        .arrow {
+            font-size: 50px;
+            cursor: pointer;
+        }
+
+        .arrow:hover {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+
+
+<div id="control-panel">
+    <i class="control-button arrow fas fa-arrow-up 7x"></i>
+    <i class="control-button arrow fas fa-arrow-right"></i>
+    <i class="control-button arrow fas fa-arrow-down"></i>
+    <i class="control-button arrow fas fa-arrow-left"></i>
+</div>
+
+
+<script>
+$( document ).ready(function() {
+    $(".control-button").click(function() {
+      console.log($( this ), $(this).attr('class'));
+      var classStr = $(this).attr('class');
+      if (classStr.includes('up')) {console.log('up')}
+      else if (classStr.includes('down')) {}
+      else if (classStr.includes('left')) {}
+      else if (classStr.includes('right')) {}
+    });
+});
+</script>
+</body>
+</html>
