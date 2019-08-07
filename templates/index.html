@@ -27,6 +27,7 @@
 
 <div id="camera-view">
     <img id="RobotCameraView" src="" />
+    <h5 id="h5-info"></h5>
 </div>
 
 <div id="control-panel">
@@ -64,63 +65,129 @@
 
 <script>
 $( document ).ready(function() {
+    var autoStop = true;
+    var timeoutLengthsForStopCommands = {
+      'S': 200,  // wheels  // todo 200 might be fine if arduino has more power
+      'X': 300,  // neck
+      'D': 250,  // wrist tilt
+      'P': 250,  // wrist rotate
+      'Y': 200,  // gripper
+      //'I': 400,  // arm
+      'I': 1000  // arm
+    }
+
+    var stopCommandForCommand = {
+      'F': 'S',  // stop wheels
+      'B': 'S',
+      'L': 'S',
+      'R': 'S', 
+      'N': 'X',  // stop neck
+      'V': 'X',
+      'U': 'D',  // stop wrist tilt
+      'H': 'D',
+      'W': 'P',  // stop wrist rotate
+      'O': 'P',
+      'T': 'Y',  // stop gripper
+      'G': 'Y',
+      'C': 'I',  // stop arm
+      'Z': 'I'
+    }
+
     $(".control-button").click(function() {
-      console.log($( this ), $(this).attr('class'));
+      //console.log($( this ), $(this).attr('class'));
       var classStr = $(this).attr('class');
       var commandToSend = false;
+      // wheel motors
       if (classStr.includes('arrow-up')) {commandToSend = 'F'}
       else if (classStr.includes('arrow-down')) {commandToSend = 'B'}
       else if (classStr.includes('arrow-left')) {commandToSend = 'L'}
       else if (classStr.includes('arrow-right')) {commandToSend = 'R'}
+      // neck up and down
+      else if (classStr.includes('neck-up')) {commandToSend = 'N'}
+      else if (classStr.includes('neck-down')) {commandToSend = 'V'}
+      // wrist tilt
+      else if (classStr.includes('wrist-up')) {commandToSend = 'U'}
+      else if (classStr.includes('wrist-down')) {commandToSend = 'H'}
+      // wrist rotate
+      else if (classStr.includes('wrist-rotate-left')) {commandToSend = 'W'}
+      else if (classStr.includes('wrist-rotate-right')) {commandToSend = 'O'}
+      // gripper
+      else if (classStr.includes('gripper-close')) {commandToSend = 'T'}
+      else if (classStr.includes('gripper-open')) {commandToSend = 'G'}
+      // arm
+      else if (classStr.includes('arm-up')) {commandToSend = 'C'}
+      else if (classStr.includes('arm-down')) {commandToSend = 'Z'}
+      // stop commands
       else if (classStr.includes('stop-wheel-motors')) {commandToSend = 'S'}
       else if (classStr.includes('stop-neck')) {commandToSend = 'X'}
       else if (classStr.includes('stop-wrist-tilt')) {commandToSend = 'D'}
       else if (classStr.includes('stop-wrist-rotate')) {commandToSend = 'P'}
       else if (classStr.includes('stop-gripper')) {commandToSend = 'Y'}
       else if (classStr.includes('stop-arm')) {commandToSend = 'I'}
-      else if (classStr.includes('neck-up')) {commandToSend = 'N'}
-      else if (classStr.includes('neck-down')) {commandToSend = 'V'}
-      else if (classStr.includes('wrist-up')) {commandToSend = 'U'}
-      else if (classStr.includes('wrist-down')) {commandToSend = 'H'}
-      else if (classStr.includes('wrist-rotate-left')) {commandToSend = 'W'}
-      else if (classStr.includes('wrist-rotate-right')) {commandToSend = 'O'}
-      else if (classStr.includes('gripper-close')) {commandToSend = 'T'}
-      else if (classStr.includes('gripper-open')) {commandToSend = 'G'}
-      else if (classStr.includes('arm-up')) {commandToSend = 'C'}
-      else if (classStr.includes('arm-down')) {commandToSend = 'Z'}
+      else {
+        console.log('Unknown command given');
+        return
+      }
 
       postData = {'commandToSend': commandToSend}
       console.log('Command to send: ', commandToSend)
-      console.log(postData)
-      //$.post("send_command", postData).done(function(data) {
-      /*$.post("send_command", JSON.stringify(postData)).done(function(data) {
-          //$(".result").html( data );
-      });*/  // doesn't work
+      console.log(postData);
 
-      $.ajax({
-          url:'/send_command',
-          type:"POST",
-          data: JSON.stringify(postData),
-          contentType:"application/json; charset=utf-8",
-          dataType:"json",
-          success: function(){
-
-          }
-        })
+      sendCommand(postData);
+      // todo if auto-stop is on send the right stop command right after with setTimeout or none
+      if (autoStop) {
+          specificStopCommand = stopCommandForCommand[commandToSend];
+          postData = {'commandToSend': specificStopCommand};
+          timeoutLength = timeoutLengthsForStopCommands[specificStopCommand];
+          setTimeout(function() {
+              console.log('Sending autostop command ', specificStopCommand, ' with timeout ', timeoutLength);
+              sendCommand(postData);
+          }, timeoutLength);
+          
+          // todo try setTimeout if too fast. But better to have more control.
+      }
+      
     });
 
-    getCameraArray = function(data) {
+    var sendCommand = function(postData) {
+        $.ajax({
+            url:'/send_command',
+            type:"POST",
+            data: JSON.stringify(postData),
+            contentType:"application/json; charset=utf-8",
+            dataType:"json",
+            success: function(){
+
+            }
+        });
+    }
+
+    // todo show in big green that the button is on
+    var cameraFeedOn = false;
+    var getCameraArray = function(data) {
        byteArray = data;
-       $('#RobotCameraView').attr('src', 'data:image/png;base64, ' + byteArray);
+       if (byteArray.length < 50) {
+          $('#h5-info').text('Android camera is not connected');
+          stopCameraInterval();
+       }
+       else {
+          $('#h5-info').text('');
+          $('#RobotCameraView').attr('src', 'data:image/png;base64, ' + byteArray);
+       }
+       
     }
 
     var camFeedInterval = false;
-    var startInterval = function() {
+    var startCameraInterval = function() {
+        cameraFeedOn = true;
+        $('#camera-feed').css('background-color', '#00ff00');
         camFeedInterval = setInterval(function() {
-            $.get("get_camera_frame", getCameraArray)
+            $.get("/get_camera_frame", getCameraArray)
         }, 100)
     }
-    var stopInterval = function() {
+    var stopCameraInterval = function() {
+        $('#camera-feed').css('background-color', '#ffffff');
+        camFeedInterval = false;
         clearInterval(camFeedInterval);
     }
 
@@ -128,10 +195,10 @@ $( document ).ready(function() {
     $('#camera-feed').click(function() {
         camFeedStopped = !camFeedStopped;
         if (camFeedStopped) {
-            stopInterval()
+            stopCameraInterval();
         }
         else {
-            startInterval()
+            startCameraInterval();
         }
     })
 

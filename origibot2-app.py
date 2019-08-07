@@ -6,12 +6,16 @@ import sys
 import numpy as np
 import cv2
 import requests
-from bluetooth import *
+#from bluetooth import *
+import bluetooth
 from flask import Flask, render_template, request, jsonify, send_from_directory
+
 
 app = Flask(__name__, static_url_path='')
 sock = None
 CAMERA_FRAME_IP_ANDROID = 'http://192.168.0.31:8080/shot.jpg'
+camera_server_online = False
+
 
 @app.route("/")
 def index_page():
@@ -26,7 +30,16 @@ def send_command():
 
 @app.route("/get_camera_frame")
 def get_camera_frame():
-    response = requests.get(CAMERA_FRAME_IP_ANDROID)
+    #import pdb;pdb.set_trace()
+    try:
+        response = requests.get(CAMERA_FRAME_IP_ANDROID) #, retries=0)  # won't work
+    except requests.exceptions.RequestException as e:  # This is the correct syntax
+        print(e)
+        print('Android camera at address: {} is not hosting'.format(CAMERA_FRAME_IP_ANDROID))
+        return 'No camera feed'
+        #sys.exit('')
+    if response.status != 200:
+        return 'No camera feed'
     #img_arr = np.array(bytearray(response.content), dtype=np.uint8)
     #img = cv2.imdecode(img_arr, -1)
 
@@ -43,12 +56,14 @@ def setup_bluetooth_socket(addr):
     # uuid = "MakeBlock"
     # service_matches = find_service( uuid = uuid, address = addr )
     # service_matches = find_service( name = uuid, address = addr )
+    #import pdb;pdb.set_trace()
     print('addr: {}'.format(addr))
-    service_matches = find_service(address=addr)
+    service_matches = bluetooth.find_service(address=addr)
 
+    print('All service matches:')
     print(service_matches)
     if len(service_matches) == 0:
-        print("couldn't find the SampleServer service =(")
+        print("couldn't find the Origibot2 bluetooth service =(")
         sys.exit(0)
 
     first_match = service_matches[0]
@@ -60,7 +75,7 @@ def setup_bluetooth_socket(addr):
 
     # Create the client socket
     global sock
-    sock = BluetoothSocket(RFCOMM)
+    sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
     sock.connect((host, port))
 
 
@@ -68,18 +83,34 @@ if __name__ == '__main__':
     try:
         # todo only setup bluetooth if clicked in browser
         addr = None
-        if len(sys.argv) < 2:
-            print("no device specified.  Searching all nearby bluetooth devices for")
-            print("the SampleServer service")
-        else:
-            addr = sys.argv[1]
-            print("Searching for SampleServer on %s" % addr)
+        # if len(sys.argv) < 2:
+        #     print("no device specified.  Searching all nearby bluetooth devices for")
+        #     print("the SampleServer service")  # todo keep
+        # else:
+        #     addr = sys.argv[1]
+        #     print("Searching for SampleServer on %s" % addr)
+        addr = '00:1B:10:61:13:82'  # default
 
-        setup_bluetooth_socket('00:1B:10:61:13:82')
-        # app.run(port=8080, debug=True)
+        setup_bluetooth_socket(addr)
+
+        '''
+        # todo could set it up at the start or could allow it to be dynamically added? Set it up at start is more principled, later is cooler.
+        # do both
+        try:
+            response = requests.get(CAMERA_FRAME_IP_ANDROID) #, retries=0)  # won't work
+            if response
+        except requests.exceptions.RequestException as e:  # This is the correct syntax
+            print(e)
+            print('Android camera at address: {} is not hosting'.format(CAMERA_FRAME_IP_ANDROID))
+            return 'No camera feed'''
+        
+
+        #app.run(port=8080, debug=True)  # oh shit, this is what is busy?
         app.run(port=8080)
     except Exception as e:
-        print('ERROR')
+        # todo how to recover from bad failures with device busy?
+        print('Error within app')
         print(e)
-        time.sleep(1000)
-        sock.close()
+        if sock:
+            time.sleep(2)
+            sock.close()
